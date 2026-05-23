@@ -1,17 +1,28 @@
-# kairos_app
+# Kairos
 
-A new Flutter project.
+A minimal daily activity manager built with Flutter. Log activities by voice dictation or manual input, and review everything you accomplished today at a glance.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- **Voice dictation** — capture activities hands-free using speech-to-text
+- **Daily summary** — see today's activity count at a glance
+- **Local storage** — all data stored on-device with Hive (no account required)
+- **Clean UI** — glassmorphism design with a light gradient theme
 
-A few resources to get you started if this is your first Flutter project:
+## Tech stack
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- Flutter 3 / Dart
+- [Hive](https://pub.dev/packages/hive) — local NoSQL database
+- [speech_to_text](https://pub.dev/packages/speech_to_text) — voice input
+- [google_fonts](https://pub.dev/packages/google_fonts) — typography
+- [permission_handler](https://pub.dev/packages/permission_handler) — microphone permissions
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Getting started
+
+```bash
+flutter pub get
+dart run build_runner build   # regenerate Hive adapters if needed
+flutter run
+```
+
+Requires Flutter SDK `>=3.0.0`.
