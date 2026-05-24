@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'models/activity.dart';
+import 'services/activity_store.dart';
 import 'theme/app_theme.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/dictation/dictation_screen.dart';
@@ -15,10 +14,7 @@ void main() async {
     statusBarIconBrightness: Brightness.dark,
   ));
   await initializeDateFormatting('fr_FR', null);
-  await Hive.initFlutter();
-  Hive.registerAdapter(ActivityAdapter());
-  Hive.registerAdapter(ActivityTypeAdapter());
-  await Hive.openBox<Activity>('activities');
+  await ActivityStore.instance.load();
   runApp(const KairosApp());
 }
 

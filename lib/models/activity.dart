@@ -1,19 +1,7 @@
-import 'package:hive/hive.dart';
-
-part 'activity.g.dart';
-
-@HiveType(typeId: 0)
-class Activity extends HiveObject {
-  @HiveField(0)
+class Activity {
   final String id;
-
-  @HiveField(1)
   final String text;
-
-  @HiveField(2)
   final DateTime createdAt;
-
-  @HiveField(3)
   final ActivityType type;
 
   Activity({
@@ -22,13 +10,20 @@ class Activity extends HiveObject {
     required this.createdAt,
     this.type = ActivityType.voice,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'text': text,
+        'createdAt': createdAt.toIso8601String(),
+        'type': type.name,
+      };
+
+  factory Activity.fromJson(Map<String, dynamic> json) => Activity(
+        id: json['id'] as String,
+        text: json['text'] as String,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        type: ActivityType.values.byName(json['type'] as String),
+      );
 }
 
-@HiveType(typeId: 1)
-enum ActivityType {
-  @HiveField(0)
-  voice,
-
-  @HiveField(1)
-  manual,
-}
+enum ActivityType { voice, manual }

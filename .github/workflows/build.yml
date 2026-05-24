@@ -28,9 +28,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Generate Hive adapters
-        run: dart run build_runner build --delete-conflicting-outputs
-
       - name: Run tests
         run: flutter test
 
@@ -57,9 +54,6 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Generate Hive adapters
-        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Run tests
         run: flutter test
@@ -108,3 +102,34 @@ jobs:
         with:
           name: kairos-ipa
           path: build/ios/ipa/*.ipa
+
+  deploy-web:
+    name: Web → GitHub Pages
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.x"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable web platform
+        run: flutter create --platforms web . --project-name kairos
+
+      - name: Build web
+        run: flutter build web --release --base-href /Kairos/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/web

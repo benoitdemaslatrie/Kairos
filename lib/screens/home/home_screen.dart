@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../models/activity.dart';
+import '../../services/activity_store.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_card.dart';
 
@@ -103,10 +103,10 @@ class HomeScreen extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: ValueListenableBuilder(
-          valueListenable: Hive.box<Activity>('activities').listenable(),
-          builder: (context, box, _) {
+          valueListenable: ActivityStore.instance,
+          builder: (context, activities, _) {
             final today = DateTime.now();
-            final todayActivities = box.values.where((a) {
+            final todayActivities = activities.where((a) {
               final d = a.createdAt;
               return d.year == today.year &&
                   d.month == today.month &&
@@ -157,10 +157,10 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             ValueListenableBuilder(
-              valueListenable: Hive.box<Activity>('activities').listenable(),
-              builder: (context, box, _) {
+              valueListenable: ActivityStore.instance,
+              builder: (context, all, _) {
                 final today = DateTime.now();
-                final activities = box.values.where((a) {
+                final activities = all.where((a) {
                   final d = a.createdAt;
                   return d.year == today.year &&
                       d.month == today.month &&

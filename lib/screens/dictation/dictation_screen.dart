@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../models/activity.dart';
+import '../../services/activity_store.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_card.dart';
 
@@ -84,14 +84,13 @@ class _DictationScreenState extends State<DictationScreen>
   Future<void> _saveActivity() async {
     if (_currentText.trim().isEmpty) return;
 
-    final box = Hive.box<Activity>('activities');
     final activity = Activity(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       text: _currentText.trim(),
       createdAt: DateTime.now(),
       type: ActivityType.voice,
     );
-    await box.add(activity);
+    await ActivityStore.instance.add(activity);
 
     setState(() {
       _currentText = '';
@@ -299,9 +298,9 @@ class _DictationScreenState extends State<DictationScreen>
 
   Widget _buildRecentList() {
     return ValueListenableBuilder(
-      valueListenable: Hive.box<Activity>('activities').listenable(),
-      builder: (context, box, _) {
-        final recent = box.values
+      valueListenable: ActivityStore.instance,
+      builder: (context, all, _) {
+        final recent = all
             .where((a) => a.type == ActivityType.voice)
             .toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
