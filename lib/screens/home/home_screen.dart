@@ -13,46 +13,64 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
+        child: Column(
+          children: [
             _buildAppBar(),
-            _buildGreeting(),
-            _buildTodaySummary(),
-            _buildActivityList(),
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  _buildGreeting(),
+                  _buildDivider(),
+                  _buildTodaySummary(),
+                  _buildDivider(),
+                  _buildActivityList(),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  SliverToBoxAdapter _buildAppBar() {
+  SliverToBoxAdapter _buildDivider() {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Kairos',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w400,
-                color: KairosColors.onSurface,
-                letterSpacing: -0.5,
-              ),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Divider(height: 1, thickness: 1, color: Colors.white.withOpacity(0.45)),
+      ),
+    );
+  }
+
+  Widget _buildAppBar() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.5), width: 1)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Kairos',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w400,
+              color: KairosColors.onSurface,
+              letterSpacing: -0.5,
             ),
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: KairosColors.surfaceContainerHigh,
-                border: Border.all(color: Colors.white.withOpacity(0.4)),
-              ),
-              child: const Icon(Icons.person_outline, size: 20, color: KairosColors.onSurface),
+          ),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: KairosColors.surfaceContainerHigh,
+              border: Border.all(color: Colors.white.withOpacity(0.4)),
             ),
-          ],
-        ),
+            child: const Icon(Icons.person_outline, size: 20, color: KairosColors.onSurface),
+          ),
+        ],
       ),
     );
   }

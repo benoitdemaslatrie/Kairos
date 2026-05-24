@@ -32,7 +32,7 @@ jobs:
         run: flutter test
 
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --build-number=${{ github.run_number }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -59,7 +59,7 @@ jobs:
         run: flutter test
 
       - name: Build iOS (no signing)
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }}
 
       - name: Import signing certificate
         if: ${{ env.HAS_SECRETS == 'true' }}
@@ -126,7 +126,7 @@ jobs:
         run: flutter create --platforms web . --project-name kairos
 
       - name: Build web
-        run: flutter build web --release --base-href /Kairos/
+        run: flutter build web --release --base-href /Kairos/ --build-number=${{ github.run_number }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

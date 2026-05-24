@@ -6,6 +6,7 @@ import 'theme/app_theme.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/dictation/dictation_screen.dart';
 import 'screens/notes/notes_screen.dart';
+import 'widgets/app_frame.dart';
 import 'widgets/bottom_nav_bar.dart';
 
 void main() async {
@@ -28,6 +29,7 @@ class KairosApp extends StatelessWidget {
       title: 'Kairos',
       debugShowCheckedModeBanner: false,
       theme: KairosTheme.light,
+      builder: (context, child) => AppFrame(child: child),
       home: const KairosShell(),
     );
   }
