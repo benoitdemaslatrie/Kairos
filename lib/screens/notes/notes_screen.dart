@@ -49,6 +49,7 @@ class _NotesScreenState extends State<NotesScreen> {
       final pages = await NotionService.fetchPages();
       final withBlocks = await Future.wait(
         pages.map((p) async {
+          if (p.blocks.isNotEmpty) return p; // already loaded from cache
           final blocks = await NotionService.fetchBlocks(p.id);
           return p.copyWith(blocks: blocks);
         }),

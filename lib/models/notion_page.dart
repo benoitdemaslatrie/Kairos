@@ -68,10 +68,22 @@ class NotionPage {
       }
     }
 
+    // Parse pre-fetched blocks from static cache (web build)
+    final childrenJson = json['children'] as List?;
+    final blocks = childrenJson != null
+        ? childrenJson
+            .map((b) => NotionBlock.fromJson(b as Map<String, dynamic>))
+            .where((b) => b.type != NotionBlockType.unknown)
+            .where((b) => b.text.isNotEmpty || b.type == NotionBlockType.toDo)
+            .take(8)
+            .toList()
+        : <NotionBlock>[];
+
     return NotionPage(
       id: json['id'] as String,
       title: title.isEmpty ? 'Sans titre' : title,
       lastEdited: DateTime.parse(json['last_edited_time'] as String),
+      blocks: blocks,
     );
   }
 }

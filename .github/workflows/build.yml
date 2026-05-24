@@ -125,6 +125,11 @@ jobs:
       - name: Enable web platform
         run: flutter create --platforms web . --project-name kairos
 
+      - name: Fetch Notion notes
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: node scripts/fetch_notion.js
+
       - name: Build web
         run: flutter build web --release --base-href /Kairos/ --build-number=${{ github.run_number }}
 

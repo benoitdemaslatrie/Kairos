@@ -6,7 +6,6 @@ import '../models/notion_page.dart';
 
 class NotionService {
   static const _tokenKey = 'notion_token';
-  static const _proxyKey = 'notion_proxy_url';
   static const _directUrl = 'https://api.notion.com/v1';
   static const _version = '2022-06-28';
 
@@ -15,28 +14,9 @@ class NotionService {
     return prefs.getString(_tokenKey);
   }
 
-  static Future<String?> getProxyUrl() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_proxyKey);
-  }
-
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token.trim());
-  }
-
-  static Future<void> saveProxyUrl(String url) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_proxyKey, url.trim().replaceAll(RegExp(r'/$'), ''));
-  }
-
-  static Future<String> _baseUrl() async {
-    if (!kIsWeb) return _directUrl;
-    final proxy = await getProxyUrl();
-    if (proxy == null || proxy.isEmpty) {
-      throw Exception('Proxy CORS non configuré — entre l\'URL du Cloudflare Worker dans les paramètres ⚙');
-    }
-    return '$proxy/v1';
   }
 
   static Map<String, String> _headers(String token) => {
@@ -45,30 +25,25 @@ class NotionService {
         'Content-Type': 'application/json',
       };
 
-  // Test that the proxy is reachable (no token needed)
-  static Future<String> testProxy(String proxyUrl) async {
-    final url = '${proxyUrl.trim().replaceAll(RegExp(r'/$'), '')}/v1/users/me';
-    try {
-      final response = await http
-          .get(Uri.parse(url), headers: {'Notion-Version': _version, 'Authorization': 'Bearer test'})
-          .timeout(const Duration(seconds: 8));
-      if (response.statusCode == 401) return 'ok'; // proxy works, token is just wrong
-      if (response.statusCode == 200) return 'ok';
-      return 'Proxy répond avec le code ${response.statusCode}';
-    } catch (e) {
-      return 'Proxy inaccessible : $e';
-    }
+  // Web: reads from the static cache built by GitHub Actions
+  static Future<List<NotionPage>> _fetchFromCache() async {
+    final response = await http.get(Uri.parse('notion_cache.json'));
+    if (response.statusCode != 200) throw Exception('Cache non trouvé (${response.statusCode})');
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final pages = data['pages'] as List? ?? [];
+    if (pages.isEmpty) throw Exception('Aucune note dans le cache — configure NOTION_TOKEN dans les secrets GitHub.');
+    return pages.map((r) => NotionPage.fromJson(r as Map<String, dynamic>)).toList();
   }
 
-  static Future<List<NotionPage>> fetchPages() async {
+  // Mobile: calls Notion API directly (no CORS restriction)
+  static Future<List<NotionPage>> _fetchFromApi() async {
     final token = await getToken();
-    if (token == null || token.isEmpty) throw Exception('Token manquant');
-    final base = await _baseUrl();
+    if (token == null || token.isEmpty) throw Exception('Token manquant — entre ton token Notion dans les paramètres.');
 
     final http.Response response;
     try {
       response = await http.post(
-        Uri.parse('$base/search'),
+        Uri.parse('$_directUrl/search'),
         headers: _headers(token),
         body: jsonEncode({
           'filter': {'value': 'page', 'property': 'object'},
@@ -77,11 +52,11 @@ class NotionService {
         }),
       );
     } catch (e) {
-      throw Exception('Erreur réseau — vérifie l\'URL du proxy.\nDétail : $e');
+      throw Exception('Erreur réseau : $e');
     }
 
-    if (response.statusCode == 401) throw Exception('Token invalide (401) — vérifie ton token Notion.');
-    if (response.statusCode == 403) throw Exception('Accès refusé (403) — partage tes pages avec l\'intégration Notion.');
+    if (response.statusCode == 401) throw Exception('Token invalide (401).');
+    if (response.statusCode == 403) throw Exception('Accès refusé (403) — partage tes pages avec l\'intégration.');
     if (response.statusCode != 200) throw Exception('Erreur ${response.statusCode} : ${response.body}');
 
     return (jsonDecode(response.body)['results'] as List)
@@ -89,21 +64,25 @@ class NotionService {
         .toList();
   }
 
+  static Future<List<NotionPage>> fetchPages() async {
+    return kIsWeb ? _fetchFromCache() : _fetchFromApi();
+  }
+
   static Future<List<NotionBlock>> fetchBlocks(String pageId) async {
+    if (kIsWeb) return []; // already included in cache
     final token = await getToken();
     if (token == null || token.isEmpty) return [];
-    final base = await _baseUrl();
 
     final response = await http.get(
-      Uri.parse('$base/blocks/$pageId/children?page_size=20'),
+      Uri.parse('$_directUrl/blocks/$pageId/children?page_size=20'),
       headers: _headers(token),
     );
-
     if (response.statusCode != 200) return [];
 
     return (jsonDecode(response.body)['results'] as List)
         .map((r) => NotionBlock.fromJson(r as Map<String, dynamic>))
-        .where((b) => b.type != NotionBlockType.unknown && b.text.isNotEmpty || b.type == NotionBlockType.toDo)
+        .where((b) => b.type != NotionBlockType.unknown)
+        .where((b) => b.text.isNotEmpty || b.type == NotionBlockType.toDo)
         .take(8)
         .toList();
   }
