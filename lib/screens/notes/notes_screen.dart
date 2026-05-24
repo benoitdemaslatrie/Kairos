@@ -82,12 +82,14 @@ class _NotesScreenState extends State<NotesScreen> {
     final proxyCtrl = TextEditingController(text: await NotionService.getProxyUrl() ?? '');
     await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFFF0F4FF),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Connexion Notion', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-        content: SingleChildScrollView(
-          child: Column(
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: AlertDialog(
+          scrollable: true,
+          backgroundColor: const Color(0xFFF0F4FF),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Connexion Notion', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -126,20 +128,20 @@ class _NotesScreenState extends State<NotesScreen> {
               ],
             ],
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+            FilledButton(
+              onPressed: () async {
+                await NotionService.saveToken(tokenCtrl.text);
+                if (kIsWeb) await NotionService.saveProxyUrl(proxyCtrl.text);
+                if (ctx.mounted) Navigator.pop(ctx);
+                await _init();
+              },
+              style: FilledButton.styleFrom(backgroundColor: KairosColors.primary),
+              child: const Text('Enregistrer'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
-          FilledButton(
-            onPressed: () async {
-              await NotionService.saveToken(tokenCtrl.text);
-              if (kIsWeb) await NotionService.saveProxyUrl(proxyCtrl.text);
-              if (ctx.mounted) Navigator.pop(ctx);
-              await _init();
-            },
-            style: FilledButton.styleFrom(backgroundColor: KairosColors.primary),
-            child: const Text('Enregistrer'),
-          ),
-        ],
       ),
     );
   }
