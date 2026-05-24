@@ -44,6 +44,13 @@ class KairosBottomNavBar extends StatelessWidget {
                     isActive: currentIndex == 1,
                     onTap: () => onTap(1),
                   ),
+                  _NavItem(
+                    icon: Icons.sticky_note_2_outlined,
+                    activeIcon: Icons.sticky_note_2,
+                    label: 'Notes',
+                    isActive: currentIndex == 2,
+                    onTap: () => onTap(2),
+                  ),
                 ],
               ),
             ),

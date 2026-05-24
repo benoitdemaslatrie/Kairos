@@ -5,6 +5,7 @@ import 'services/activity_store.dart';
 import 'theme/app_theme.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/dictation/dictation_screen.dart';
+import 'screens/notes/notes_screen.dart';
 import 'widgets/bottom_nav_bar.dart';
 
 void main() async {
@@ -45,6 +46,7 @@ class _KairosShellState extends State<KairosShell> {
   static const _screens = [
     HomeScreen(),
     DictationScreen(),
+    NotesScreen(),
   ];
 
   @override
