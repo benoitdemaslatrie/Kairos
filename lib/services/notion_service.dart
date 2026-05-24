@@ -1,11 +1,13 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notion_page.dart';
 
 class NotionService {
   static const _tokenKey = 'notion_token';
-  static const _baseUrl = 'https://api.notion.com/v1';
+  static const _proxyKey = 'notion_proxy_url';
+  static const _directUrl = 'https://api.notion.com/v1';
   static const _version = '2022-06-28';
 
   static Future<String?> getToken() async {
@@ -13,9 +15,26 @@ class NotionService {
     return prefs.getString(_tokenKey);
   }
 
+  static Future<String?> getProxyUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_proxyKey);
+  }
+
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token.trim());
+  }
+
+  static Future<void> saveProxyUrl(String url) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_proxyKey, url.trim().replaceAll(RegExp(r'/$'), ''));
+  }
+
+  static Future<String> _baseUrl() async {
+    if (!kIsWeb) return _directUrl;
+    final proxy = await getProxyUrl();
+    if (proxy != null && proxy.isNotEmpty) return '$proxy/v1';
+    return _directUrl;
   }
 
   static Map<String, String> _headers(String token) => {
@@ -27,9 +46,10 @@ class NotionService {
   static Future<List<NotionPage>> fetchPages() async {
     final token = await getToken();
     if (token == null || token.isEmpty) return [];
+    final base = await _baseUrl();
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/search'),
+      Uri.parse('$base/search'),
       headers: _headers(token),
       body: jsonEncode({
         'filter': {'value': 'page', 'property': 'object'},
@@ -40,19 +60,18 @@ class NotionService {
 
     if (response.statusCode != 200) return [];
 
-    final results = (jsonDecode(response.body)['results'] as List)
+    return (jsonDecode(response.body)['results'] as List)
         .map((r) => NotionPage.fromJson(r as Map<String, dynamic>))
         .toList();
-
-    return results;
   }
 
   static Future<List<NotionBlock>> fetchBlocks(String pageId) async {
     final token = await getToken();
     if (token == null || token.isEmpty) return [];
+    final base = await _baseUrl();
 
     final response = await http.get(
-      Uri.parse('$_baseUrl/blocks/$pageId/children?page_size=20'),
+      Uri.parse('$base/blocks/$pageId/children?page_size=20'),
       headers: _headers(token),
     );
 

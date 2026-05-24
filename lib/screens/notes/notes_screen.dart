@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../models/notion_page.dart';
 import '../../services/notion_service.dart';
@@ -77,41 +78,61 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   Future<void> _showTokenDialog() async {
-    final controller = TextEditingController(text: await NotionService.getToken() ?? '');
+    final tokenCtrl = TextEditingController(text: await NotionService.getToken() ?? '');
+    final proxyCtrl = TextEditingController(text: await NotionService.getProxyUrl() ?? '');
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFFF0F4FF),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Token Notion', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Crée une intégration sur notion.so/my-integrations, copie le token "Internal Integration Secret" et colle-le ici.',
-              style: TextStyle(fontSize: 13, color: KairosColors.onSurfaceVariant),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: 'secret_...',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        title: const Text('Connexion Notion', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Token d\'intégration', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: KairosColors.onSurfaceVariant)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: tokenCtrl,
+                decoration: InputDecoration(
+                  hintText: 'secret_...',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+                style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
+                maxLines: 2,
               ),
-              style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-              maxLines: 2,
-            ),
-          ],
+              if (kIsWeb) ...[
+                const SizedBox(height: 16),
+                const Text('URL du proxy CORS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: KairosColors.onSurfaceVariant)),
+                const SizedBox(height: 4),
+                Text('Nécessaire sur web. Déploie le proxy Cloudflare Worker depuis le fichier cloudflare/notion-proxy.js du repo.',
+                    style: TextStyle(fontSize: 11, color: KairosColors.onSurfaceVariant.withOpacity(0.7))),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: proxyCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'https://notion-proxy.xxx.workers.dev',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ],
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
           FilledButton(
             onPressed: () async {
-              await NotionService.saveToken(controller.text);
+              await NotionService.saveToken(tokenCtrl.text);
+              if (kIsWeb) await NotionService.saveProxyUrl(proxyCtrl.text);
               if (ctx.mounted) Navigator.pop(ctx);
               await _init();
             },
