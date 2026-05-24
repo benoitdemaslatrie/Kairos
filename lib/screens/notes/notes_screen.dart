@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../models/notion_page.dart';
 import '../../services/notion_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_card.dart';
+import 'notion_settings_screen.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -77,73 +77,12 @@ class _NotesScreenState extends State<NotesScreen> {
     });
   }
 
-  Future<void> _showTokenDialog() async {
-    final tokenCtrl = TextEditingController(text: await NotionService.getToken() ?? '');
-    final proxyCtrl = TextEditingController(text: await NotionService.getProxyUrl() ?? '');
-    await showDialog(
-      context: context,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: AlertDialog(
-          scrollable: true,
-          backgroundColor: const Color(0xFFF0F4FF),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Connexion Notion', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Token d\'intégration', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: KairosColors.onSurfaceVariant)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: tokenCtrl,
-                decoration: InputDecoration(
-                  hintText: 'secret_...',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-                style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-                maxLines: 2,
-              ),
-              if (kIsWeb) ...[
-                const SizedBox(height: 16),
-                const Text('URL du proxy CORS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: KairosColors.onSurfaceVariant)),
-                const SizedBox(height: 4),
-                Text('Nécessaire sur web. Déploie le proxy Cloudflare Worker depuis le fichier cloudflare/notion-proxy.js du repo.',
-                    style: TextStyle(fontSize: 11, color: KairosColors.onSurfaceVariant.withOpacity(0.7))),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: proxyCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'https://notion-proxy.xxx.workers.dev',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
-            FilledButton(
-              onPressed: () async {
-                await NotionService.saveToken(tokenCtrl.text);
-                if (kIsWeb) await NotionService.saveProxyUrl(proxyCtrl.text);
-                if (ctx.mounted) Navigator.pop(ctx);
-                await _init();
-              },
-              style: FilledButton.styleFrom(backgroundColor: KairosColors.primary),
-              child: const Text('Enregistrer'),
-            ),
-          ],
-        ),
-      ),
+  Future<void> _openSettings() async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const NotionSettingsScreen()),
     );
+    if (saved == true) _init();
   }
 
   @override
@@ -172,7 +111,7 @@ class _NotesScreenState extends State<NotesScreen> {
           const Text('Notes', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w300, color: KairosColors.onSurface, letterSpacing: -0.8)),
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: KairosColors.onSurfaceVariant, size: 22),
-            onPressed: _showTokenDialog,
+            onPressed: _openSettings,
             tooltip: 'Token Notion',
           ),
         ],
@@ -255,7 +194,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 style: TextStyle(fontSize: 13, color: KairosColors.onSurfaceVariant.withOpacity(0.6))),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _showTokenDialog,
+              onPressed: _openSettings,
               icon: const Icon(Icons.add_link, size: 18),
               label: const Text('Connecter Notion'),
               style: FilledButton.styleFrom(backgroundColor: KairosColors.primary),
