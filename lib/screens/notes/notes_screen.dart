@@ -57,8 +57,8 @@ class _NotesScreenState extends State<NotesScreen> {
         _pages = withBlocks;
         _filtered = withBlocks;
       });
-    } catch (_) {
-      setState(() => _error = 'Impossible de charger les notes.');
+    } catch (e) {
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
       setState(() => _loading = false);
     }

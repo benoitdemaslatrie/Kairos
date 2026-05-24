@@ -45,20 +45,27 @@ class NotionService {
 
   static Future<List<NotionPage>> fetchPages() async {
     final token = await getToken();
-    if (token == null || token.isEmpty) return [];
+    if (token == null || token.isEmpty) throw Exception('Token manquant');
     final base = await _baseUrl();
 
-    final response = await http.post(
-      Uri.parse('$base/search'),
-      headers: _headers(token),
-      body: jsonEncode({
-        'filter': {'value': 'page', 'property': 'object'},
-        'page_size': 30,
-        'sort': {'direction': 'descending', 'timestamp': 'last_edited_time'},
-      }),
-    );
+    final http.Response response;
+    try {
+      response = await http.post(
+        Uri.parse('$base/search'),
+        headers: _headers(token),
+        body: jsonEncode({
+          'filter': {'value': 'page', 'property': 'object'},
+          'page_size': 30,
+          'sort': {'direction': 'descending', 'timestamp': 'last_edited_time'},
+        }),
+      );
+    } catch (e) {
+      throw Exception('Erreur réseau : $e');
+    }
 
-    if (response.statusCode != 200) return [];
+    if (response.statusCode == 401) throw Exception('Token invalide (401) — vérifie ton token Notion.');
+    if (response.statusCode == 403) throw Exception('Accès refusé (403) — partage tes pages avec l\'intégration.');
+    if (response.statusCode != 200) throw Exception('Erreur Notion ${response.statusCode} : ${response.body}');
 
     return (jsonDecode(response.body)['results'] as List)
         .map((r) => NotionPage.fromJson(r as Map<String, dynamic>))
