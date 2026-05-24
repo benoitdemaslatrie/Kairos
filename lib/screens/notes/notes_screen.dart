@@ -3,6 +3,7 @@ import '../../models/notion_page.dart';
 import '../../services/notion_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_card.dart';
+import 'note_editor_screen.dart';
 import 'notion_settings_screen.dart';
 
 class NotesScreen extends StatefulWidget {
@@ -86,10 +87,25 @@ class _NotesScreenState extends State<NotesScreen> {
     if (saved == true) _init();
   }
 
+  Future<void> _openEditor({NotionPage? page}) async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => NoteEditorScreen(page: page)),
+    );
+    if (saved == true) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
+      floatingActionButton: _hasToken
+          ? FloatingActionButton(
+              onPressed: () => _openEditor(),
+              backgroundColor: KairosColors.primary,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,9 +186,9 @@ class _NotesScreenState extends State<NotesScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _Column(pages: left)),
+            Expanded(child: _Column(pages: left, onTap: _openEditor)),
             const SizedBox(width: 8),
-            Expanded(child: _Column(pages: right)),
+            Expanded(child: _Column(pages: right, onTap: _openEditor)),
           ],
         ),
       ),
@@ -237,19 +253,26 @@ class _NotesScreenState extends State<NotesScreen> {
 
 class _Column extends StatelessWidget {
   final List<NotionPage> pages;
-  const _Column({required this.pages});
+  final void Function({NotionPage? page}) onTap;
+  const _Column({required this.pages, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: pages.map((p) => Padding(padding: const EdgeInsets.only(bottom: 8), child: _NoteCard(page: p))).toList(),
+      children: pages
+          .map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _NoteCard(page: p, onTap: () => onTap(page: p)),
+              ))
+          .toList(),
     );
   }
 }
 
 class _NoteCard extends StatelessWidget {
   final NotionPage page;
-  const _NoteCard({required this.page});
+  final VoidCallback onTap;
+  const _NoteCard({required this.page, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -258,6 +281,7 @@ class _NoteCard extends StatelessWidget {
 
     return GlassCard(
       padding: const EdgeInsets.all(14),
+      onTap: onTap,
       child: isQuote ? _QuoteContent(page: page) : hasChecklist ? _ChecklistContent(page: page) : _TextContent(page: page),
     );
   }

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../services/notion_service.dart';
@@ -13,6 +12,8 @@ class NotionSettingsScreen extends StatefulWidget {
 
 class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
   final _tokenCtrl = TextEditingController();
+  final _proxyCtrl = TextEditingController();
+  final _parentCtrl = TextEditingController();
   bool _saving = false;
   bool _tokenObscured = true;
   String _version = '';
@@ -26,11 +27,15 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
   @override
   void dispose() {
     _tokenCtrl.dispose();
+    _proxyCtrl.dispose();
+    _parentCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
     _tokenCtrl.text = await NotionService.getToken() ?? '';
+    _proxyCtrl.text = await NotionService.getProxyUrl() ?? '';
+    _parentCtrl.text = await NotionService.getParentId() ?? '';
     final info = await PackageInfo.fromPlatform();
     setState(() => _version = '${info.version} (build ${info.buildNumber})');
   }
@@ -38,6 +43,8 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
   Future<void> _save() async {
     setState(() => _saving = true);
     await NotionService.saveToken(_tokenCtrl.text);
+    await NotionService.saveProxyUrl(_proxyCtrl.text);
+    await NotionService.saveParentId(_parentCtrl.text);
     setState(() => _saving = false);
     if (mounted) Navigator.pop(context, true);
   }
@@ -53,7 +60,10 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
           icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: KairosColors.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Paramètres Notion', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: KairosColors.onSurface)),
+        title: const Text(
+          'Paramètres Notion',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: KairosColors.onSurface),
+        ),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -66,58 +76,20 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: kIsWeb ? _buildWebContent() : _buildMobileContent(),
+            child: _buildContent(),
           ),
         ),
       ),
     );
   }
 
-  // Sur web : les notes sont récupérées par GitHub Actions via NOTION_TOKEN secret
-  Widget _buildWebContent() {
+  Widget _buildContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        _SectionCard(
-          icon: Icons.auto_awesome_outlined,
-          title: 'Comment ça fonctionne',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Step(number: '1', text: 'Va sur notion.so/profile/integrations → crée une intégration → copie le token secret_...'),
-              const SizedBox(height: 10),
-              _Step(number: '2', text: 'Dans Notion, partage chaque page avec ton intégration (... → Connections).'),
-              const SizedBox(height: 10),
-              _Step(number: '3', text: 'Sur GitHub → Settings → Secrets and variables → Actions → New secret → nom : NOTION_TOKEN, valeur : ton token.'),
-              const SizedBox(height: 10),
-              _Step(number: '4', text: 'Relance le workflow GitHub Actions → les notes seront intégrées au prochain déploiement.'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _SectionCard(
-          icon: Icons.info_outline,
-          title: 'Pourquoi cette approche ?',
-          child: Text(
-            'Les navigateurs web bloquent les appels directs à l\'API Notion (CORS). Kairos contourne ce problème en récupérant tes notes lors du build sur GitHub, sans jamais exposer ton token dans le navigateur.',
-            style: TextStyle(fontSize: 13, color: KairosColors.onSurfaceVariant.withOpacity(0.8), height: 1.5),
-          ),
-        ),
-        if (_version.isNotEmpty) ...[
-          const SizedBox(height: 32),
-          Center(child: Text(_version, style: TextStyle(fontSize: 11, color: KairosColors.onSurfaceVariant.withOpacity(0.35)))),
-        ],
-      ],
-    );
-  }
 
-  // Sur mobile : token saisi directement, API appelée sans CORS
-  Widget _buildMobileContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 8),
+        // Token
         _SectionCard(
           icon: Icons.vpn_key_outlined,
           title: 'Token d\'intégration',
@@ -125,7 +97,7 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Crée une intégration sur notion.so/profile/integrations et copie le "Internal Integration Secret".',
+                'Va sur notion.so/profile/integrations, crée une intégration et copie le "Internal Integration Secret".',
                 style: TextStyle(fontSize: 12, color: KairosColors.onSurfaceVariant.withOpacity(0.7), height: 1.4),
               ),
               const SizedBox(height: 12),
@@ -144,7 +116,11 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   suffixIcon: IconButton(
-                    icon: Icon(_tokenObscured ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20, color: KairosColors.onSurfaceVariant),
+                    icon: Icon(
+                      _tokenObscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      size: 20,
+                      color: KairosColors.onSurfaceVariant,
+                    ),
                     onPressed: () => setState(() => _tokenObscured = !_tokenObscured),
                   ),
                 ),
@@ -153,7 +129,76 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
             ],
           ),
         ),
+
+        const SizedBox(height: 16),
+
+        // Proxy URL
+        _SectionCard(
+          icon: Icons.cloud_outlined,
+          title: 'URL du proxy Vercel',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Déploie le dossier api/ sur Vercel (vercel.com) et colle ici l\'URL de ton déploiement. Nécessaire pour accéder à Notion depuis le navigateur (CORS).',
+                style: TextStyle(fontSize: 12, color: KairosColors.onSurfaceVariant.withOpacity(0.7), height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _proxyCtrl,
+                keyboardType: TextInputType.text,
+                decoration: InputDecoration(
+                  hintText: 'https://mon-proxy.vercel.app',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: KairosColors.cyan, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                style: const TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Parent page ID
+        _SectionCard(
+          icon: Icons.folder_open_outlined,
+          title: 'ID de la page parente',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Ouvre la page Notion où tu veux créer tes notes. L\'ID est la suite de caractères dans l\'URL après le dernier tiret, ex : notion.so/Ma-Page-abc123def456 → abc123def456.',
+                style: TextStyle(fontSize: 12, color: KairosColors.onSurfaceVariant.withOpacity(0.7), height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _parentCtrl,
+                decoration: InputDecoration(
+                  hintText: 'abc123def456...',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: KairosColors.cyan, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+              ),
+            ],
+          ),
+        ),
+
         const SizedBox(height: 32),
+
         SizedBox(
           width: double.infinity,
           child: FilledButton(
@@ -168,9 +213,15 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
                 : const Text('Enregistrer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
         ),
+
         if (_version.isNotEmpty) ...[
           const SizedBox(height: 32),
-          Center(child: Text(_version, style: TextStyle(fontSize: 11, color: KairosColors.onSurfaceVariant.withOpacity(0.35)))),
+          Center(
+            child: Text(
+              _version,
+              style: TextStyle(fontSize: 11, color: KairosColors.onSurfaceVariant.withOpacity(0.35)),
+            ),
+          ),
         ],
       ],
     );
@@ -205,29 +256,6 @@ class _SectionCard extends StatelessWidget {
           child,
         ],
       ),
-    );
-  }
-}
-
-class _Step extends StatelessWidget {
-  final String number;
-  final String text;
-  const _Step({required this.number, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(color: KairosColors.cyan.withOpacity(0.15), shape: BoxShape.circle),
-          child: Center(child: Text(number, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: KairosColors.cyan))),
-        ),
-        const SizedBox(width: 10),
-        Expanded(child: Text(text, style: TextStyle(fontSize: 12, color: KairosColors.onSurfaceVariant.withOpacity(0.8), height: 1.4))),
-      ],
     );
   }
 }

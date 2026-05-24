@@ -1,0 +1,10 @@
+{
+  "buildCommand": "echo 'proxy only'",
+  "outputDirectory": "public",
+  "functions": {
+    "api/notion-proxy.js": { "runtime": "nodejs18.x" }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/notion-proxy.js" }
+  ]
+}
