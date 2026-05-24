@@ -33,8 +33,10 @@ class NotionService {
   static Future<String> _baseUrl() async {
     if (!kIsWeb) return _directUrl;
     final proxy = await getProxyUrl();
-    if (proxy != null && proxy.isNotEmpty) return '$proxy/v1';
-    return _directUrl;
+    if (proxy == null || proxy.isEmpty) {
+      throw Exception('Proxy CORS non configuré — entre l\'URL du Cloudflare Worker dans les paramètres ⚙');
+    }
+    return '$proxy/v1';
   }
 
   static Map<String, String> _headers(String token) => {
@@ -42,6 +44,21 @@ class NotionService {
         'Notion-Version': _version,
         'Content-Type': 'application/json',
       };
+
+  // Test that the proxy is reachable (no token needed)
+  static Future<String> testProxy(String proxyUrl) async {
+    final url = '${proxyUrl.trim().replaceAll(RegExp(r'/$'), '')}/v1/users/me';
+    try {
+      final response = await http
+          .get(Uri.parse(url), headers: {'Notion-Version': _version, 'Authorization': 'Bearer test'})
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 401) return 'ok'; // proxy works, token is just wrong
+      if (response.statusCode == 200) return 'ok';
+      return 'Proxy répond avec le code ${response.statusCode}';
+    } catch (e) {
+      return 'Proxy inaccessible : $e';
+    }
+  }
 
   static Future<List<NotionPage>> fetchPages() async {
     final token = await getToken();
@@ -60,12 +77,12 @@ class NotionService {
         }),
       );
     } catch (e) {
-      throw Exception('Erreur réseau : $e');
+      throw Exception('Erreur réseau — vérifie l\'URL du proxy.\nDétail : $e');
     }
 
     if (response.statusCode == 401) throw Exception('Token invalide (401) — vérifie ton token Notion.');
-    if (response.statusCode == 403) throw Exception('Accès refusé (403) — partage tes pages avec l\'intégration.');
-    if (response.statusCode != 200) throw Exception('Erreur Notion ${response.statusCode} : ${response.body}');
+    if (response.statusCode == 403) throw Exception('Accès refusé (403) — partage tes pages avec l\'intégration Notion.');
+    if (response.statusCode != 200) throw Exception('Erreur ${response.statusCode} : ${response.body}');
 
     return (jsonDecode(response.body)['results'] as List)
         .map((r) => NotionPage.fromJson(r as Map<String, dynamic>))

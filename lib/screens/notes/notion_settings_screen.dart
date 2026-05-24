@@ -15,6 +15,8 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
   final _tokenCtrl = TextEditingController();
   final _proxyCtrl = TextEditingController();
   bool _saving = false;
+  bool _testing = false;
+  String? _proxyStatus;
   bool _tokenObscured = true;
   String _version = '';
 
@@ -36,6 +38,20 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
     _proxyCtrl.text = await NotionService.getProxyUrl() ?? '';
     final info = await PackageInfo.fromPlatform();
     setState(() => _version = '${info.version} (build ${info.buildNumber})');
+  }
+
+  Future<void> _testProxy() async {
+    final url = _proxyCtrl.text.trim();
+    if (url.isEmpty) {
+      setState(() => _proxyStatus = 'Entre d\'abord l\'URL du proxy.');
+      return;
+    }
+    setState(() { _testing = true; _proxyStatus = null; });
+    final result = await NotionService.testProxy(url);
+    setState(() {
+      _testing = false;
+      _proxyStatus = result == 'ok' ? '✓ Proxy accessible' : '✗ $result';
+    });
   }
 
   Future<void> _save() async {
@@ -110,22 +126,58 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
                     icon: Icons.swap_horiz_outlined,
                     title: 'URL du proxy CORS',
                     description: 'Nécessaire sur web. Déploie le Cloudflare Worker depuis cloudflare/notion-proxy.js dans le repo.',
-                    child: TextField(
-                      controller: _proxyCtrl,
-                      enableInteractiveSelection: true,
-                      autocorrect: false,
-                      decoration: InputDecoration(
-                        hintText: 'https://notion-proxy.xxx.workers.dev',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: KairosColors.cyan, width: 1.5),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: _proxyCtrl,
+                          enableInteractiveSelection: true,
+                          autocorrect: false,
+                          decoration: InputDecoration(
+                            hintText: 'https://notion-proxy.xxx.workers.dev',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: KairosColors.cyan, width: 1.5),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                          style: const TextStyle(fontSize: 14),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                      style: const TextStyle(fontSize: 14),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _testing ? null : _testProxy,
+                              icon: _testing
+                                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : const Icon(Icons.wifi_tethering, size: 16),
+                              label: const Text('Tester le proxy', style: TextStyle(fontSize: 13)),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: KairosColors.primary,
+                                side: BorderSide(color: KairosColors.primary.withOpacity(0.4)),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                            if (_proxyStatus != null) ...[
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _proxyStatus!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: _proxyStatus!.startsWith('✓') ? Colors.green.shade700 : KairosColors.error,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],
