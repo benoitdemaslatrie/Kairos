@@ -11,10 +11,15 @@ export default async function handler(req, res) {
   const token = process.env.NOTION_TOKEN || req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Token manquant' });
 
-  // /api/search → https://api.notion.com/v1/search
-  const rawPath = req.url.split('/api/')[1] ?? '';
-  const [pathPart, queryPart] = rawPath.split('?');
-  const notionUrl = `https://api.notion.com/v1/${pathPart}${queryPart ? '?' + queryPart : ''}`;
+  // req.query.path is an array like ['blocks', 'abc123', 'children']
+  const segments = Array.isArray(req.query.path) ? req.query.path : [req.query.path];
+  const notionPath = segments.join('/');
+  const notionUrl = `https://api.notion.com/v1/${notionPath}`;
+
+  let bodyText;
+  if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
+    bodyText = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+  }
 
   const notionRes = await fetch(notionUrl, {
     method: req.method,
@@ -23,7 +28,7 @@ export default async function handler(req, res) {
       'Notion-Version': '2022-06-28',
       'Content-Type': 'application/json',
     },
-    body: ['POST', 'PATCH', 'PUT'].includes(req.method) ? JSON.stringify(req.body) : undefined,
+    body: bodyText,
   });
 
   const data = await notionRes.json();
