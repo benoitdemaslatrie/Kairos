@@ -4,15 +4,14 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, Notion-Version',
 };
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const token = process.env.NOTION_TOKEN || req.headers.authorization?.replace('Bearer ', '');
+  const token = process.env.NOTION_TOKEN || (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Token manquant' });
 
-  // req.query.path is an array like ['blocks', 'abc123', 'children']
-  const segments = Array.isArray(req.query.path) ? req.query.path : [req.query.path];
+  const segments = Array.isArray(req.query.path) ? req.query.path : [req.query.path].filter(Boolean);
   const notionPath = segments.join('/');
   const notionUrl = `https://api.notion.com/v1/${notionPath}`;
 
@@ -32,5 +31,5 @@ export default async function handler(req, res) {
   });
 
   const data = await notionRes.json();
-  res.status(notionRes.status).json(data);
-}
+  return res.status(notionRes.status).json(data);
+};
