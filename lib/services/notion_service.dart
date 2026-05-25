@@ -44,13 +44,16 @@ class NotionService {
   }
 
   static Future<Map<String, String>> _headers() async {
-    final token = await getToken();
-    if (token == null || token.isEmpty) throw Exception('Token manquant');
-    return {
-      'Authorization': 'Bearer $token',
+    final headers = {
       'Notion-Version': _version,
       'Content-Type': 'application/json',
     };
+    if (!kIsWeb) {
+      final token = await getToken();
+      if (token == null || token.isEmpty) throw Exception('Token manquant');
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
   }
 
   static Future<http.Response> _request(

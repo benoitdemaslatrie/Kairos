@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../services/notion_service.dart';
@@ -89,48 +90,49 @@ class _NotionSettingsScreenState extends State<NotionSettingsScreen> {
       children: [
         const SizedBox(height: 8),
 
-        // Token
-        _SectionCard(
-          icon: Icons.vpn_key_outlined,
-          title: 'Token d\'intégration',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Va sur notion.so/profile/integrations, crée une intégration et copie le "Internal Integration Secret".',
-                style: TextStyle(fontSize: 12, color: KairosColors.onSurfaceVariant.withOpacity(0.7), height: 1.4),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _tokenCtrl,
-                obscureText: _tokenObscured,
-                enableInteractiveSelection: true,
-                decoration: InputDecoration(
-                  hintText: 'secret_...',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: KairosColors.cyan, width: 1.5),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _tokenObscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                      size: 20,
-                      color: KairosColors.onSurfaceVariant,
-                    ),
-                    onPressed: () => setState(() => _tokenObscured = !_tokenObscured),
-                  ),
+        // Token (mobile only — sur web le token est dans Vercel)
+        if (!kIsWeb) ...[
+          _SectionCard(
+            icon: Icons.vpn_key_outlined,
+            title: 'Token d\'intégration',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Va sur notion.so/profile/integrations, crée une intégration et copie le "Internal Integration Secret".',
+                  style: TextStyle(fontSize: 12, color: KairosColors.onSurfaceVariant.withOpacity(0.7), height: 1.4),
                 ),
-                style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _tokenCtrl,
+                  obscureText: _tokenObscured,
+                  enableInteractiveSelection: true,
+                  decoration: InputDecoration(
+                    hintText: 'secret_...',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: KairosColors.cyan, width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _tokenObscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        size: 20,
+                        color: KairosColors.onSurfaceVariant,
+                      ),
+                      onPressed: () => setState(() => _tokenObscured = !_tokenObscured),
+                    ),
+                  ),
+                  style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+                ),
+              ],
+            ),
           ),
-        ),
-
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
+        ],
 
         // Proxy URL
         _SectionCard(

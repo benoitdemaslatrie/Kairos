@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../models/notion_page.dart';
 import '../../services/notion_service.dart';
@@ -35,8 +36,10 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   Future<void> _init() async {
-    final token = await NotionService.getToken();
-    setState(() => _hasToken = token != null && token.isNotEmpty);
+    final ready = kIsWeb
+        ? await NotionService.getProxyUrl().then((v) => v != null && v.isNotEmpty)
+        : await NotionService.getToken().then((v) => v != null && v.isNotEmpty);
+    setState(() => _hasToken = ready);
     if (_hasToken) _load();
   }
 
