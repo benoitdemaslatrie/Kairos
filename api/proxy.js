@@ -11,9 +11,9 @@ module.exports = async function handler(req, res) {
   const token = process.env.NOTION_TOKEN || (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Token manquant' });
 
-  const segments = Array.isArray(req.query.path) ? req.query.path : [req.query.path].filter(Boolean);
-  const notionPath = segments.join('/');
-  const notionUrl = `https://api.notion.com/v1/${notionPath}`;
+  // req.url = /api/search or /api/blocks/abc/children?page_size=20
+  const after = req.url.replace(/^\/api\//, '');
+  const notionUrl = `https://api.notion.com/v1/${after}`;
 
   let bodyText;
   if (['POST', 'PATCH', 'PUT'].includes(req.method)) {

@@ -1,4 +1,7 @@
 {
   "buildCommand": "echo 'proxy only'",
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/proxy.js" }
+  ]
 }
